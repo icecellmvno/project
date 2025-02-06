@@ -4,7 +4,7 @@ import { sign } from "jsonwebtoken"
 import { prisma } from "@/lib/prisma"
 import { headers } from "next/headers"
 
-const JWT_SECRET = process.env.JWT_SECRET || "gizli-anahtar"
+const JWT_SECRET = process.env.JWT_SECRET || "secret"
 
 export async function POST(req: Request) {
   try {

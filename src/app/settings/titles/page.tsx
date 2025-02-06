@@ -17,6 +17,9 @@ const JWT_SECRET = process.env.JWT_SECRET || "secret"
 
 export default async function TitlesPage() {
   try {
+    // Veritabanı bağlantısını kontrol et
+    await prisma.$connect()
+
     const cookieStore = cookies()
     const token = cookieStore.get("token")?.value
 
@@ -24,11 +27,14 @@ export default async function TitlesPage() {
       redirect("/login")
     }
 
-    const decoded = verify(token, JWT_SECRET) as { userId: string }
+    const decoded = verify(token, JWT_SECRET) as { userId: string, tenantId: string }
 
     const titles = await prisma.smsTitle.findMany({
       where: {
-        userId: decoded.userId
+        userId: decoded.userId,
+        user: {
+          tenantId: decoded.tenantId
+        }
       },
       orderBy: {
         createdAt: "desc"
@@ -72,7 +78,7 @@ export default async function TitlesPage() {
       </SidebarProvider>
     )
   } catch (error) {
-    console.error("Titles page error:", error)
-    redirect("/login")
+    console.error("Database connection error:", error)
+    redirect("/database-error")
   }
 } 
