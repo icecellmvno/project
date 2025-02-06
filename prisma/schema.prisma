@@ -1,0 +1,159 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  username  String   @unique
+  email     String   @unique
+  password  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  tenantId  String
+  smsTitles SmsTitle[]
+}
+
+model Tenant {
+  id         String     @id @default(cuid())
+  name       String
+  domain     String     @unique
+  favicon    String?
+  logo       String?
+  title      String
+  credit     Int        @default(0)
+  tenantType TenantType
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  users      User[]
+}
+
+model Contact {
+  id          String         @id @default(cuid())
+  firstName   String?
+  lastName    String?
+  email       String?
+  phone       String        // Sadece telefon zorunlu
+  department  String?
+  title       String?
+  notes       String?
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  tenantId    String        // İlişki yerine sadece id tutuyoruz
+  groups      ContactGroup[]
+}
+
+model Group {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  color       String?        @default("#000000")
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  contacts    ContactGroup[]
+}
+
+model ContactGroup {
+  id        String   @id @default(cuid())
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId   String
+  createdAt DateTime @default(now())
+
+  @@unique([contactId, groupId])
+}
+
+model Blacklist {
+  id          String   @id @default(cuid())
+  phone       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenantId    String
+  isActive    Boolean  @default(true)
+}
+
+model SmsTitle {
+  id         String    @id @default(cuid())
+  title      String    @unique
+  type       TitleType
+  status     TitleStatus @default(PENDING)
+  reason     String?
+  createdAt  DateTime  @default(now())
+  approvedAt DateTime?
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@map("sms_titles")
+}
+
+model SmsCampaign {
+  id String @id @default(cuid())
+  message String
+  totalCount Int
+  sentCount Int
+  failedCount Int
+  waitingCount Int
+  tenantId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model SmsCampaignDetail {
+  id String @id @default(cuid())
+  smsCampaignId String
+  from String
+  to String
+  message String
+  status SmsCampaignStatus @default(PENDING)
+  operatorId String
+  operatorReportId String
+  routeId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TenantType {
+  RESELLER
+  CUSTOMER
+  HOST
+}
+
+enum TitleType {
+  ALPHANUMERIC
+  NUMERIC
+}
+
+enum TitleStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SmsCampaignStatus {
+  SCHEDULED
+  ENROUTE
+  DELIVERED
+  EXPIRED
+  DELETED
+  REJECTED
+  ACCEPTED
+  UNDELIVERABLE
+}
